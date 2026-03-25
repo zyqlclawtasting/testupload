@@ -1,0 +1,38 @@
+{
+  "task_id": "task_1774407586495",
+  "status": "render_ready",
+  "title": "贪吃蛇",
+  "summary": "一个适合手机竖屏运行的贪吃蛇小游戏",
+  "deliverable": {
+    "type": "embedded_html_app",
+    "entry_type": "inline_html",
+    "html_path": "sdcard/dist/snake_classic_4407586495.html",
+    "sandbox": {
+      "allow_network": false,
+      "allow_storage": true,
+      "allow_script": true
+    },
+    "ui_config": {
+      "open_mode": "inline_card_then_fullscreen",
+      "aspect_ratio": "9:16",
+      "orientation": "portrait"
+    },
+    "result_schema": {
+      "supports_event_callback": true,
+      "events": [
+        "game_loaded",
+        "game_started",
+        "score_updated",
+        "game_over",
+        "user_exit"
+      ]
+    }
+  },
+  "metadata": {
+    "skill_name": "html-game",
+    "version": "v1",
+    "genre": "snake",
+    "theme": "custom",
+    "platform": "mobile"
+  }
+}

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>贪吃蛇</title>
+  <style>
+    :root {
+      --bg1: #0f0c29; --bg2: #302b63; --bg3: #24243e;
+      --panel: rgba(255,255,255,.07);
+      --panel-border: rgba(255,255,255,.13);
+      --text: #f0f0ff;
+      --muted: rgba(240,240,255,.55);
+      --accent: #00f5a0; --accent2: #00d9f5;
+      --danger: #ff6b9d;
+      --btn: rgba(255,255,255,.1);
+      --btn-border: rgba(255,255,255,.18);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 50%, var(--bg3) 100%);
+      height: 100dvh; overflow: hidden; color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif;
+      display: flex; justify-content: center;
+    }
+    .app {
+      width: 100%; max-width: 480px; height: 100dvh; overflow: hidden;
+      display: flex; flex-direction: column;
+      padding: calc(10px + env(safe-area-inset-top)) 14px calc(10px + env(safe-area-inset-bottom));
+      gap: 8px;
+    }
+    .glass {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 10px 15px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .game-title {
+      margin: 0 0 2px;
+      font-size: 20px; font-weight: 800; letter-spacing: -0.5px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .game-sub { font-size: 12px; color: var(--muted); }
+    .stats { display: flex; gap: 8px; }
+    .stat {
+      flex: 1; border-radius: 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.09);
+      padding: 8px 12px; text-align: center;
+    }
+    .stat-label {
+      font-size: 10px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px;
+    }
+    .stat-value {
+      font-size: 22px; font-weight: 800; line-height: 1;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-value.plain {
+      background: none; -webkit-text-fill-color: var(--text);
+      font-size: 14px; font-weight: 600;
+    }
+    .canvas-wrap {
+      flex: 1; min-height: 0;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    #game {
+      max-width: 100%; max-height: 100%; width: auto; height: auto;
+      border-radius: 16px; display: block; touch-action: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.07);
+    }
+    .dpad {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 6px; max-width: 210px; margin: 0 auto;
+    }
+    .dpad-empty { pointer-events: none; }
+    .btn {
+      border: 1px solid var(--btn-border);
+      border-radius: 14px;
+      background: var(--btn);
+      color: var(--text); font-size: 18px;
+      min-height: 46px; cursor: pointer;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 4px 12px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.15);
+      transition: transform .08s ease, box-shadow .08s ease, background .08s ease;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn:active {
+      transform: scale(0.93);
+      box-shadow: 0 2px 6px rgba(0,0,0,.3);
+      background: rgba(255,255,255,.18);
+    }
+    .footer { display: flex; gap: 8px; }
+    .footer-btn {
+      flex: 1; border: 0; border-radius: 14px;
+      padding: 12px; font-size: 15px; font-weight: 700;
+      cursor: pointer;
+      transition: transform .1s ease, filter .1s ease;
+    }
+    .footer-btn:active { transform: scale(0.97); filter: brightness(0.88); }
+    .footer-btn.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #062a1e;
+    }
+    .footer-btn.secondary {
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.15);
+      color: var(--text);
+    }
+    .tip { display: none; }
+    @keyframes scorePop {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.35); }
+      100% { transform: scale(1); }
+    }
+    .pop { animation: scorePop 0.25s ease; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="glass">
+    <h1 class="game-title">像素贪吃蛇</h1>
+    <div class="game-sub">吃掉食物，别撞墙，看你能走多远</div>
+  </div>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">得分</div>
+      <div class="stat-value" id="score">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">状态</div>
+      <div class="stat-value plain" id="status">待开始</div>
+    </div>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="game" width="360" height="490" aria-label="贪吃蛇游戏画布"></canvas>
+  </div>
+  <div class="dpad">
+    <div class="dpad-empty"></div>
+    <button class="btn" id="upBtn">↑</button>
+    <div class="dpad-empty"></div>
+    <button class="btn" id="leftBtn">←</button>
+    <button class="btn" id="downBtn">↓</button>
+    <button class="btn" id="rightBtn">→</button>
+  </div>
+  <div class="footer">
+    <button class="footer-btn primary" id="startBtn">开始游戏</button>
+    <button class="footer-btn secondary" id="exitBtn">退出</button>
+  </div>
+  <div class="tip">吃绿色食物得 1 分，撞墙或撞自己则结束</div>
+</div>
+<script>
+  function emit(event, payload) {
+    try { if (window.AppUIBridge && typeof window.AppUIBridge.emit === "function") { window.AppUIBridge.emit(event, payload || {}); return; } } catch (e) {}
+    try { if (window.parent && typeof window.parent.postMessage === "function") { window.parent.postMessage({ type: "TASK_EVENT", event: event, payload: payload || {} }, "*"); } } catch (e) {}
+  }
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const scoreEl = document.getElementById("score");
+  const statusEl = document.getElementById("status");
+  const startBtn = document.getElementById("startBtn");
+  const exitBtn = document.getElementById("exitBtn");
+  const SIZE = 20;
+  const COLS = canvas.width / SIZE;
+  const ROWS = canvas.height / SIZE;
+  let snake, food, dir, nextDir, score, timer, running, startedAt;
+
+  function resetGame() {
+    snake = [{ x: 8, y: 8 }, { x: 7, y: 8 }, { x: 6, y: 8 }];
+    food = randomFood();
+    dir = { x: 1, y: 0 }; nextDir = { x: 1, y: 0 };
+    score = 0; running = false;
+    scoreEl.textContent = score; statusEl.textContent = "待开始";
+    draw();
+  }
+
+  function randomFood() {
+    let pos;
+    do { pos = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) }; }
+    while (snake && snake.some(s => s.x === pos.x && s.y === pos.y));
+    return pos;
+  }
+
+  function startGame() {
+    if (timer) clearInterval(timer);
+    resetGame(); running = true; startedAt = Date.now();
+    statusEl.textContent = "进行中"; startBtn.textContent = "重新开始";
+    emit("game_started", { startedAt }); timer = setInterval(tick, 140);
+  }
+
+  function gameOver() {
+    running = false; clearInterval(timer); statusEl.textContent = "已结束";
+    emit("game_over", { score, duration_sec: Math.max(1, Math.floor((Date.now() - startedAt) / 1000)) });
+    drawGameOver();
+  }
+
+  function tick() {
+    dir = nextDir;
+    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS || snake.some(s => s.x === head.x && s.y === head.y)) {
+      gameOver(); return;
+    }
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score += 1; scoreEl.textContent = score;
+      scoreEl.classList.remove("pop"); void scoreEl.offsetWidth; scoreEl.classList.add("pop");
+      emit("score_updated", { score }); food = randomFood();
+    } else { snake.pop(); }
+    draw();
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function draw() {
+    ctx.fillStyle = "#0d1117"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Grid
+    ctx.strokeStyle = "rgba(255,255,255,.04)"; ctx.lineWidth = 1;
+    for (let x = 0; x <= COLS; x++) { ctx.beginPath(); ctx.moveTo(x * SIZE, 0); ctx.lineTo(x * SIZE, canvas.height); ctx.stroke(); }
+    for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0, y * SIZE); ctx.lineTo(canvas.width, y * SIZE); ctx.stroke(); }
+    // Snake body with alpha fade
+    snake.forEach((seg, i) => {
+      const alpha = Math.max(0.28, 1 - (i / snake.length) * 0.7);
+      ctx.fillStyle = `rgba(0, 245, 160, ${alpha})`;
+      roundRect(seg.x * SIZE + 2, seg.y * SIZE + 2, SIZE - 4, SIZE - 4, i === 0 ? 7 : 4);
+      ctx.fill();
+      if (i === 0) {
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        ctx.beginPath(); ctx.arc(seg.x * SIZE + 5, seg.y * SIZE + 5, 3, 0, Math.PI * 2); ctx.fill();
+      }
+    });
+    // Food with radial glow
+    const fx = food.x * SIZE + SIZE / 2, fy = food.y * SIZE + SIZE / 2;
+    const grd = ctx.createRadialGradient(fx, fy, 0, fx, fy, SIZE);
+    grd.addColorStop(0, "rgba(255,107,157,0.5)"); grd.addColorStop(1, "rgba(255,107,157,0)");
+    ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(fx, fy, SIZE, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ff6b9d"; ctx.beginPath(); ctx.arc(fx, fy, SIZE / 2.8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.65)"; ctx.beginPath(); ctx.arc(fx - 2, fy - 2, 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawGameOver() {
+    draw();
+    ctx.fillStyle = "rgba(8,8,20,0.72)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    // Card
+    ctx.fillStyle = "rgba(28,28,52,0.95)";
+    roundRect(cx - 115, cy - 72, 230, 144, 22); ctx.fill();
+    ctx.strokeStyle = "rgba(0,245,160,0.3)"; ctx.lineWidth = 1.5;
+    roundRect(cx - 115, cy - 72, 230, 144, 22); ctx.stroke();
+    // Text
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ff6b9d"; ctx.font = "bold 26px -apple-system,'PingFang SC',sans-serif";
+    ctx.fillText("游戏结束", cx, cy - 24);
+    ctx.fillStyle = "rgba(240,240,255,0.55)"; ctx.font = "14px -apple-system,'PingFang SC',sans-serif";
+    ctx.fillText("最终得分", cx, cy + 10);
+    const sg = ctx.createLinearGradient(cx - 40, 0, cx + 40, 0);
+    sg.addColorStop(0, "#00f5a0"); sg.addColorStop(1, "#00d9f5");
+    ctx.fillStyle = sg; ctx.font = "bold 40px -apple-system,'PingFang SC',sans-serif";
+    ctx.fillText(score, cx, cy + 56);
+  }
+
+  function setDir(x, y) {
+    if (!running) return;
+    if (x === -dir.x && y === -dir.y) return;
+    nextDir = { x, y };
+  }
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowUp") setDir(0, -1); if (e.key === "ArrowDown") setDir(0, 1);
+    if (e.key === "ArrowLeft") setDir(-1, 0); if (e.key === "ArrowRight") setDir(1, 0);
+  });
+  document.getElementById("upBtn").addEventListener("click", () => setDir(0, -1));
+  document.getElementById("downBtn").addEventListener("click", () => setDir(0, 1));
+  document.getElementById("leftBtn").addEventListener("click", () => setDir(-1, 0));
+  document.getElementById("rightBtn").addEventListener("click", () => setDir(1, 0));
+  startBtn.addEventListener("click", startGame);
+  exitBtn.addEventListener("click", () => {
+    emit("user_exit", { reason: "button_click" }); statusEl.textContent = "已退出";
+    if (timer) clearInterval(timer);
+  });
+
+  resetGame();
+  emit("game_loaded", { ok: true, title: "像素贪吃蛇" });
+</script>
+</body>
+</html>
