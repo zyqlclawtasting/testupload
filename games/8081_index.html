@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎮 ClawPhone 小游戏中心</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e1b4b, #111827);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #e5e7eb;
+      padding: 20px;
+    }
+    .container {
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #22d3ee, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      color: rgba(226, 232, 240, 0.7);
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .game-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .game-card {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 18px;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+    }
+    .game-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+    .game-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    .game-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, #22d3ee, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .game-desc {
+      font-size: 14px;
+      color: rgba(226, 232, 240, 0.7);
+    }
+    .status {
+      margin-top: 30px;
+      padding: 12px 20px;
+      background: rgba(52, 211, 153, 0.15);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      border-radius: 12px;
+      font-size: 13px;
+      color: #34d399;
+    }
+    .port-info {
+      margin-top: 10px;
+      font-size: 12px;
+      color: rgba(226, 232, 240, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 小游戏中心</h1>
+    <p class="subtitle">ClawPhone 内置小游戏 - 浏览器即开即玩</p>
+    
+    <div class="game-list">
+      <a href="kimi_snake_8080.html" class="game-card">
+        <div class="game-icon">🐍</div>
+        <div class="game-title">贪吃蛇</div>
+        <div class="game-desc">经典休闲游戏，触控方向键或键盘方向键操作</div>
+      </a>
+      
+      <a href="index.html" class="game-card">
+        <div class="game-icon">⚡</div>
+        <div class="game-title">闪避小球</div>
+        <div class="game-desc">左右滑动躲避障碍，挑战你的反应速度</div>
+      </a>
+    </div>
+    
+    <div class="status">✅ 服务运行正常</div>
+    <div class="port-info">端口: 8081 | 可通过 http://<设备IP>:8081 访问</div>
+  </div>
+</body>
+</html>

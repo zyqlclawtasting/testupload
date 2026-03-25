@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Kimi Snake</title>
+  <style>
+    :root{
+      --bg1:#0f172a;--bg2:#1e293b;--panel:rgba(255,255,255,.08);--line:rgba(255,255,255,.14);
+      --text:#e2e8f0;--muted:rgba(226,232,240,.65);--ok:#34d399;--warn:#fb7185;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{margin:0;height:100dvh;overflow:hidden;display:flex;justify-content:center;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;background:linear-gradient(145deg,var(--bg1),var(--bg2))}
+    .app{width:min(100%,480px);height:100dvh;padding:calc(10px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:10px 12px;backdrop-filter:blur(10px)}
+    h1{margin:0;font-size:20px;font-weight:800;background:linear-gradient(90deg,#22d3ee,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
+    .score{font-size:26px;font-weight:800;color:var(--ok)}
+    .canvas-wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    canvas{max-width:100%;max-height:100%;width:auto;height:auto;border-radius:14px;display:block;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+    .dpad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:220px;margin:0 auto}
+    .empty{pointer-events:none}
+    button{border:1px solid rgba(255,255,255,.2);border-radius:14px;background:rgba(255,255,255,.12);color:var(--text);min-height:46px;font-size:18px;backdrop-filter:blur(8px);transition:transform .08s ease}
+    button:active{transform:scale(.95)}
+    .ops{display:flex;gap:8px}
+    .ops button{flex:1;min-height:44px;font-size:15px;font-weight:700}
+    .primary{background:linear-gradient(135deg,#22d3ee,#34d399);color:#052e2b;border:none}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="panel">
+    <h1>贪吃蛇 · Kimi版</h1>
+    <div class="row"><span>触控方向键操作</span><span>得分 <span class="score" id="score">0</span></span></div>
+  </div>
+  <div class="canvas-wrap"><canvas id="game" width="360" height="520"></canvas></div>
+  <div class="dpad">
+    <div class="empty"></div><button id="up">↑</button><div class="empty"></div>
+    <button id="left">←</button><button id="down">↓</button><button id="right">→</button>
+  </div>
+  <div class="ops"><button id="start" class="primary">开始</button><button id="restart">重开</button></div>
+</div>
+<script>
+const cvs=document.getElementById('game'),ctx=cvs.getContext('2d');
+const scoreEl=document.getElementById('score');
+const S=20,C=cvs.width/S,R=cvs.height/S;
+let snake,food,dir,next,score,timer,running=false;
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function reset(){snake=[{x:8,y:8},{x:7,y:8},{x:6,y:8}];dir={x:1,y:0};next={x:1,y:0};score=0;scoreEl.textContent='0';food=spawn();draw()}
+function spawn(){let p;do{p={x:(Math.random()*C)|0,y:(Math.random()*R)|0}}while(snake.some(s=>s.x===p.x&&s.y===p.y));return p}
+function setDir(x,y){if(!running)return;if(x===-dir.x&&y===-dir.y)return;next={x,y}}
+function step(){dir=next;const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};if(h.x<0||h.x>=C||h.y<0||h.y>=R||snake.some(s=>s.x===h.x&&s.y===h.y)){running=false;clearInterval(timer);return}
+snake.unshift(h);if(h.x===food.x&&h.y===food.y){score++;scoreEl.textContent=score;food=spawn()}else snake.pop();draw()}
+function draw(){ctx.fillStyle='#0b1220';ctx.fillRect(0,0,cvs.width,cvs.height);ctx.strokeStyle='rgba(255,255,255,.04)';for(let x=0;x<=C;x++){ctx.beginPath();ctx.moveTo(x*S,0);ctx.lineTo(x*S,cvs.height);ctx.stroke()}for(let y=0;y<=R;y++){ctx.beginPath();ctx.moveTo(0,y*S);ctx.lineTo(cvs.width,y*S);ctx.stroke()}
+snake.forEach((s,i)=>{ctx.fillStyle=`rgba(52,211,153,${Math.max(.3,1-i/snake.length*.7)})`;rr(s.x*S+2,s.y*S+2,S-4,S-4,i?4:7);ctx.fill()});
+const fx=food.x*S+S/2,fy=food.y*S+S/2,g=ctx.createRadialGradient(fx,fy,0,fx,fy,S);g.addColorStop(0,'rgba(251,113,133,.6)');g.addColorStop(1,'rgba(251,113,133,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(fx,fy,S,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fb7185';ctx.beginPath();ctx.arc(fx,fy,S/2.8,0,Math.PI*2);ctx.fill()}
+function start(){if(timer)clearInterval(timer);reset();running=true;timer=setInterval(step,130)}
+
+document.getElementById('up').onclick=()=>setDir(0,-1);
+document.getElementById('down').onclick=()=>setDir(0,1);
+document.getElementById('left').onclick=()=>setDir(-1,0);
+document.getElementById('right').onclick=()=>setDir(1,0);
+document.getElementById('start').onclick=start;
+document.getElementById('restart').onclick=start;
+document.addEventListener('keydown',e=>{if(e.key==='ArrowUp')setDir(0,-1);if(e.key==='ArrowDown')setDir(0,1);if(e.key==='ArrowLeft')setDir(-1,0);if(e.key==='ArrowRight')setDir(1,0);});
+reset();
+</script>
+</body>
+</html>

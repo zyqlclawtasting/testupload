@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <title>闪避小球</title>
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:none}
+    body{margin:0;height:100dvh;overflow:hidden;display:flex;justify-content:center;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);color:#e5e7eb;font-family:system-ui,-apple-system,sans-serif}
+    .app{width:min(100%,520px);height:100dvh;display:flex;flex-direction:column;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom))}
+    .panel{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:12px 16px;backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+    h1{margin:0;font-size:26px;background:linear-gradient(90deg,#00f5ff,#00ff88);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 30px rgba(0,245,255,.3)}
+    .meta{display:flex;justify-content:space-between;align-items:center;font-size:14px;opacity:.9}
+    .score-box{text-align:right}
+    .score{font-weight:800;font-size:28px;color:#00ff88;text-shadow:0 0 20px rgba(0,255,136,.4)}
+    .high-score{font-size:12px;color:#aaa;margin-top:2px}
+    .wrap{flex:1;min-height:0;display:flex;position:relative}
+    canvas{width:100%;height:100%;border-radius:16px;background:linear-gradient(180deg,#0a0e27,#050811);box-shadow:0 10px 40px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05)}
+    .btns{display:flex;gap:10px}
+    button{flex:1;border:none;border-radius:14px;padding:14px 12px;font-size:16px;font-weight:700;cursor:pointer;transition:all .15s ease}
+    .btn-primary{color:#001a10;background:linear-gradient(135deg,#00f5ff,#00ff88);box-shadow:0 4px 20px rgba(0,255,136,.3)}
+    .btn-primary:active{transform:scale(.96);box-shadow:0 2px 10px rgba(0,255,136,.2)}
+    .btn-secondary{color:#e5e7eb;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)}
+    .btn-secondary:active{transform:scale(.96);background:rgba(255,255,255,.15)}
+    .btn-danger{background:linear-gradient(135deg,#ff6b6b,#ee5a5a);color:#fff}
+    .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.7);border-radius:16px;opacity:0;pointer-events:none;transition:opacity .3s}
+    .overlay.show{opacity:1;pointer-events:auto}
+    .overlay-text{font-size:32px;font-weight:800;margin-bottom:20px;text-shadow:0 0 30px rgba(255,255,255,.3)}
+    .overlay-sub{font-size:16px;color:#aaa}
+    .controls{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:15px;opacity:.6}
+    .control-hint{font-size:12px;background:rgba(0,0,0,.5);padding:6px 12px;border-radius:20px}
+    @media (max-width:380px){
+      h1{font-size:22px}
+      .score{font-size:24px}
+      button{padding:12px 10px;font-size:14px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="panel">
+    <h1>⚡ 闪避小球</h1>
+    <div class="meta">
+      <span>← → 滑动或按键控制</span>
+      <div class="score-box">
+        <div class="score" id="s">0</div>
+        <div class="high-score">最高分: <span id="hs">0</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <canvas id="c" width="400" height="640"></canvas>
+    <div class="overlay" id="overlay">
+      <div class="overlay-text" id="otext">点击开始</div>
+      <div class="overlay-sub" id="osub">躲避红色障碍球</div>
+    </div>
+    <div class="controls">
+      <span class="control-hint">← → 方向键</span>
+      <span class="control-hint">触摸滑动</span>
+    </div>
+  </div>
+  <div class="btns">
+    <button class="btn-primary" id="start">开始</button>
+    <button class="btn-secondary" id="pause">暂停</button>
+    <button class="btn-danger" id="reset">重开</button>
+  </div>
+</div>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+const scoreEl=document.getElementById('s'),highScoreEl=document.getElementById('hs');
+const overlay=document.getElementById('overlay'),oText=document.getElementById('otext'),oSub=document.getElementById('osub');
+const startBtn=document.getElementById('start'),pauseBtn=document.getElementById('pause'),resetBtn=document.getElementById('reset');
+
+let p,o,t,run=false,paused=false,score=0,highScore=0,v=2.5,last=0,spawnTimer=0;
+const CW=400,CH=640;
+
+function loadHighScore(){highScore=parseInt(localStorage.getItem('dodgeBallHighScore')||'0');highScoreEl.textContent=highScore;}
+function saveHighScore(){if(score>highScore){highScore=score;localStorage.setItem('dodgeBallHighScore',highScore);highScoreEl.textContent=highScore;}}
+
+function reset(){
+  run=false;paused=false;
+  p={x:CW/2-15,y:CH-80,w:30,h:30};
+  o=[];score=0;v=2.5;spawnTimer=0;last=0;
+  scoreEl.textContent='0';
+  loadHighScore();
+  draw();
+  showOverlay('点击开始','躲避红色障碍球');
+  startBtn.textContent='开始';
+  pauseBtn.textContent='暂停';
+}
+
+function showOverlay(text,sub){
+  if(!run&&!paused&&score===0){oText.textContent=text;oSub.textContent=sub;overlay.classList.add('show');}
+  else{overlay.classList.remove('show');}
+}
+function hideOverlay(){overlay.classList.remove('show');}
+
+function spawn(){
+  const size=28+Math.random()*16;
+  o.push({x:Math.random()*(CW-size),y:-size,w:size,h:size,vx:(Math.random()-.5)*.5});
+}
+
+function drawGrid(){
+  x.strokeStyle='rgba(255,255,255,.03)';
+  x.lineWidth=1;
+  for(let i=0;i<CW;i+=30){x.beginPath();x.moveTo(i,0);x.lineTo(i,CH);x.stroke();}
+  for(let j=0;j<CH;j+=30){x.beginPath();x.moveTo(0,j);x.lineTo(CW,j);x.stroke();}
+}
+
+function drawPlayer(){
+  const g=x.createRadialGradient(p.x+p.w/2,p.y+p.h/2,2,p.x+p.w/2,p.y+p.h/2,p.w/2);
+  g.addColorStop(0,'#5eead4');g.addColorStop(.5,'#14b8a6');g.addColorStop(1,'rgba(20,184,166,.3)');
+  x.fillStyle=g;
+  x.shadowColor='#5eead4';x.shadowBlur=15;
+  roundRect(p.x,p.y,p.w,p.h,10);x.fill();
+  x.shadowBlur=0;
+  x.fillStyle='rgba(255,255,255,.3)';
+  x.beginPath();x.arc(p.x+8,p.y+8,4,0,Math.PI*2);x.fill();
+}
+
+function drawObstacles(){
+  o.forEach(a=>{
+    const g=x.createRadialGradient(a.x+a.w/2,a.y+a.h/2,0,a.x+a.w/2,a.y+a.h/2,a.w/2);
+    g.addColorStop(0,'#ff6b6b');g.addColorStop(.5,'#ee5a5a');g.addColorStop(1,'rgba(238,90,90,.2)');
+    x.fillStyle=g;
+    x.shadowColor='#ff6b6b';x.shadowBlur=10;
+    roundRect(a.x,a.y,a.w,a.h,8);x.fill();
+    x.shadowBlur=0;
+  });
+}
+
+function roundRect(a,b,w,h,r){
+  x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath();
+}
+
+function draw(){
+  x.fillStyle='#0a0e27';x.fillRect(0,0,CW,CH);
+  drawGrid();
+  drawPlayer();
+  drawObstacles();
+}
+
+function gameOver(){
+  run=false;saveHighScore();
+  oText.textContent='游戏结束';oSub.textContent='得分: '+score;overlay.classList.add('show');
+  startBtn.textContent='重新开始';
+}
+
+function loop(ts){
+  if(!run)return;
+  if(paused){requestAnimationFrame(loop);return;}
+  if(!last)last=ts;
+  const dt=(ts-last)/16.67;last=ts;
+  spawnTimer+=dt;
+  if(spawnTimer>40/(v+2)){spawn();spawnTimer=0;}
+  o.forEach(a=>{a.y+=v*dt;a.x+=a.vx*dt;if(a.x<0||a.x+a.w>CW)a.vx*=-1;});
+  o=o.filter(a=>a.y<CH+50);
+  for(const a of o){
+    if(!(p.x+p.w<a.x+4||p.x+4>a.x+a.w||p.y+p.h<a.y+4||p.y+4>a.y+a.h)){gameOver();return;}
+  }
+  score+=1;if(score%300===0)v+=.4;
+  scoreEl.textContent=score;
+  draw();
+  requestAnimationFrame(loop);
+}
+
+let sx=0,isTouching=false;
+c.addEventListener('touchstart',e=>{isTouching=true;sx=e.touches[0].clientX;},{passive:true});
+c.addEventListener('touchmove',e=>{
+  if(!isTouching||!run||paused)return;
+  const nx=e.touches[0].clientX,dx=(nx-sx)*.8;
+  p.x=Math.max(0,Math.min(CW-p.w,p.x+dx));sx=nx;
+},{passive:true});
+c.addEventListener('touchend',()=>{isTouching=false;},{passive:true});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'){p.x=Math.max(0,p.x-25);if(!run&&score===0)startGame();}
+  if(e.key==='ArrowRight'){p.x=Math.min(CW-p.w,p.x+25);if(!run&&score===0)startGame();}
+  if(e.code==='Space'){e.preventDefault();togglePause();}
+});
+
+function startGame(){
+  if(run)return;
+  if(score>0){reset();}
+  run=true;paused=false;last=0;hideOverlay();
+  startBtn.textContent='进行中';
+  requestAnimationFrame(loop);
+}
+
+function togglePause(){
+  if(!run)return;
+  paused=!paused;
+  pauseBtn.textContent=paused?'继续':'暂停';
+  if(!paused){last=0;requestAnimationFrame(loop);}
+}
+
+startBtn.onclick=startGame;
+pauseBtn.onclick=togglePause;
+resetBtn.onclick=reset;
+overlay.onclick=()=>{if(!run)startGame();};
+
+loadHighScore();reset();
+</script>
+</body>
+</html>
