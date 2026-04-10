@@ -140,7 +140,16 @@ PAGE = """
       flex-direction: column;
       gap: 8px;
     }
-    .title { color: #7dd3fc; font-size: 18px; margin: 0; }
+    .title { color: #7dd3fc; font-size: 18px; margin: 0; display: flex; align-items: center; gap: 8px; }
+    .ver {
+      display: inline-block;
+      padding: 2px 8px;
+      border: 1px solid #334155;
+      border-radius: 999px;
+      font-size: 12px;
+      color: #cbd5e1;
+      background: #111827;
+    }
     .hint { color: #94a3b8; font-size: 13px; margin: 0 0 4px 0; }
     #terminal {
       flex: 1;
@@ -166,7 +175,7 @@ PAGE = """
 </head>
 <body>
 <div class="wrap">
-  <div class="title">ClawPhone 网页命令行（8081）</div>
+  <div class="title">ClawPhone 网页命令行（8081）<span class="ver">v1.2 · Fullscreen</span></div>
   <div class="hint">已切到终端渲染模式，支持 kimi CLI 交互（方向键/退格/颜色控制符）。</div>
 
   <div id="terminal"></div>
