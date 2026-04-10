@@ -117,28 +117,49 @@ PAGE = """
   <link rel="stylesheet" href="https://unpkg.com/xterm/css/xterm.css" />
   <style>
     :root { color-scheme: dark; }
-    body {
-      margin: 0; padding: 14px; background: #0b1020; color: #e5e7eb;
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #0b1020;
+      color: #e5e7eb;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
-    .wrap { max-width: 1024px; margin: 0 auto; }
-    .title { color: #7dd3fc; font-size: 18px; margin-bottom: 8px; }
-    .hint { color: #94a3b8; font-size: 13px; margin-bottom: 10px; }
+    body {
+      height: 100dvh;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+    .wrap {
+      width: 100%;
+      height: calc(100dvh - 24px);
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .title { color: #7dd3fc; font-size: 18px; margin: 0; }
+    .hint { color: #94a3b8; font-size: 13px; margin: 0 0 4px 0; }
     #terminal {
-      height: 560px;
+      flex: 1;
+      min-height: 0;
       border: 1px solid #1e293b;
       border-radius: 10px;
       overflow: hidden;
       background: #020617;
     }
-    .bar { display: flex; gap: 8px; margin-top: 10px; }
+    .bar { display: flex; gap: 8px; }
     input {
       flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334155;
       background: #111827; color: #e5e7eb;
+      min-width: 0;
     }
     button {
       padding: 10px 12px; border: 1px solid #2563eb; border-radius: 8px;
       background: #2563eb; color: #fff; cursor: pointer;
+      white-space: nowrap;
     }
     button.ghost { background: transparent; border-color: #334155; color: #cbd5e1; }
   </style>
@@ -160,6 +181,7 @@ PAGE = """
 </div>
 
 <script src="https://unpkg.com/xterm/lib/xterm.js"></script>
+<script src="https://unpkg.com/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
 <script>
 const term = new Terminal({
   cursorBlink: true,
@@ -168,7 +190,10 @@ const term = new Terminal({
   fontFamily: 'Menlo, Monaco, Consolas, monospace',
   theme: { background: '#020617' }
 });
+const fitAddon = new FitAddon.FitAddon();
+term.loadAddon(fitAddon);
 term.open(document.getElementById('terminal'));
+fitAddon.fit();
 term.focus();
 
 let offset = 0;
@@ -227,8 +252,13 @@ document.getElementById('restartBtn').addEventListener('click', async ()=>{
   term.clear();
   term.reset();
   offset = 0;
+  fitAddon.fit();
   poll();
   term.focus();
+});
+
+window.addEventListener('resize', () => {
+  fitAddon.fit();
 });
 
 setInterval(poll, 120);
